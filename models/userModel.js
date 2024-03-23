@@ -30,6 +30,10 @@ const userSchema = mongoose.Schema(
     fifty: {
       type: String,
     },
+    gender: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,

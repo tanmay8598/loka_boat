@@ -16,7 +16,7 @@ const authAdmin = asyncHandler(async (req, res) => {
       _id: admin._id,
       name: admin.name,
       email: admin.email,
-      token: generateToken.generateToken.generateTokenAdmin(admin._id, admin.name, admin.email),
+      token: generateToken.generateTokenAdmin(admin._id, admin.name, admin.email),
     });
   } else {
     res.status(401);

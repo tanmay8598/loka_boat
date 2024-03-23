@@ -61,7 +61,7 @@ const authUser = asyncHandler(async (req, res) => {
 //@access   Public
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, gender } = req.body;
 
   const userExists = await User.findOne({ email });
   const runs = Math.floor(Math.random() * (4000 - 2000 + 1) + 2000);
@@ -79,6 +79,7 @@ const registerUser = asyncHandler(async (req, res) => {
     runs,
     avg,
     phone,
+    gender,
   });
 
   if (user) {
@@ -89,6 +90,7 @@ const registerUser = asyncHandler(async (req, res) => {
       fifty: user.fifty,
       runs: user.runs,
       avg: user.avg,
+      gender: user.gender,
 
       // token: generateTokenUser(
       //   user._id,
@@ -150,8 +152,18 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // @route   Get /api/users
 // @access  Private/Admin
 const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({});
-  res.json(users);
+  const page = Number(req.query.pageNumber) || 1;
+  const pageSize = 50;
+  const count = await User.countDocuments({});
+  var pageCount = Math.floor(count / 50);
+  if (count % 50 !== 0) {
+    pageCount = pageCount + 1;
+  }
+  const users = await User.find({})
+    .limit(pageSize)
+    .sort({ createdAt: -1 })
+    .skip(pageSize * (page - 1));
+  res.json({ users, pageCount });
 });
 
 // @desc    Delete users
@@ -207,21 +219,44 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 const card = asyncHandler(async (req, res) => {
+  const { gender } = req.query;
   const replicate = new Replicate({
     auth: process.env.REPLICATE_API_TOKEN,
   });
-  const input = {
-    swap_image: req.query.photo,
-    target_image: "https://times-project.s3.ap-south-1.amazonaws.com/front.png",
-  };
 
-  const output = await replicate.run(
-    "omniedgeio/face-swap:c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe",
-    { input }
-  );
-  res.json({
-    output,
-  });
+  if (gender === "male") {
+    const input = {
+      swap_image: req.query.photo,
+      target_image:
+        "https://times-project.s3.ap-south-1.amazonaws.com/front.png",
+    };
+    const output = await replicate.run(
+      "omniedgeio/face-swap:c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe",
+      { input }
+    );
+    const user = await User.findById(req.query.userID);
+    if (user) {
+      user.card = output;
+
+      const updatedUser = await user.save();
+    }
+    res.json({
+      output,
+    });
+  } else {
+    const input = {
+      swap_image: req.query.photo,
+      target_image:
+        "https://times-project.s3.ap-south-1.amazonaws.com/female_card-1.jpg",
+    };
+    const output = await replicate.run(
+      "omniedgeio/face-swap:c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe",
+      { input }
+    );
+    res.json({
+      output,
+    });
+  }
 });
 
 module.exports = {
