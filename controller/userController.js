@@ -2,10 +2,20 @@ const asyncHandler = require("express-async-handler");
 const { generateTokenUser } = require("../utils/generateToken.js");
 const User = require("../models/userModel.js");
 const Replicate = require("replicate");
-
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 // @desc    Auth user & get token
 // @route   POST /api/users/login
 //@access   Public
+
+const config = {
+  region: process.env.AWS_BUCKET_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY,
+  },
+};
+
+const s3 = new S3Client(config);
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -138,6 +148,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     if (req.body.card) {
       user.card = req.body.card ? req.body.card : "";
     }
+
     const updatedUser = await user.save();
     res.status(201).json({
       updatedUser,
@@ -253,6 +264,14 @@ const card = asyncHandler(async (req, res) => {
       "omniedgeio/face-swap:c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe",
       { input }
     );
+
+    const user = await User.findById(req.query.userID);
+
+    if (user) {
+      user.card = output;
+
+      const updatedUser = await user.save();
+    }
     res.json({
       output,
     });
