@@ -71,9 +71,9 @@ const authUser = asyncHandler(async (req, res) => {
 //@access   Public
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone, gender } = req.body;
+  const { name, email, lastname, phone, gender } = req.body;
 
-  const userExists = await User.findOne({ email });
+  const userExists = await User.findOne({ phone });
   const runs = Math.floor(Math.random() * (4000 - 2000 + 1) + 2000);
   const avg = Math.floor(Math.random() * (60 - 30 + 1) + 30);
   const fifty = Math.floor(Math.random() * (30 - 10 + 1) + 10);
@@ -84,6 +84,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const user = await User.create({
     name,
+    lastname,
     email,
     fifty,
     runs,
@@ -100,6 +101,7 @@ const registerUser = asyncHandler(async (req, res) => {
       fifty: user.fifty,
       runs: user.runs,
       avg: user.avg,
+      lastname: user.lastname,
       gender: user.gender,
 
       // token: generateTokenUser(
@@ -205,6 +207,16 @@ const getUserById = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 });
+const getUserByPhone = asyncHandler(async (req, res) => {
+  console.log(req.query.phone)
+  const user = await User.findOne({phone: req.query.phone}).select("-password");
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
 
 // @desc    Update user
 // @route   PUT /api/users/:id
@@ -289,4 +301,5 @@ module.exports = {
   updateUser,
   resetPassword,
   card,
+  getUserByPhone
 };
