@@ -208,10 +208,12 @@ const getUserById = asyncHandler(async (req, res) => {
   }
 });
 const getUserByPhone = asyncHandler(async (req, res) => {
-  console.log(req.query.phone)
-  const user = await User.findOne({phone: req.query.phone}).select("-password");
+  const user = await User.findOne({ phone: req.query.phone }).select(
+    "-password"
+  );
+
   if (user) {
-    res.json(user);
+    res.json({ user });
   } else {
     res.status(404);
     throw new Error("User not found");
@@ -251,7 +253,7 @@ const card = asyncHandler(async (req, res) => {
     const input = {
       swap_image: req.query.photo,
       target_image:
-        "https://times-project.s3.ap-south-1.amazonaws.com/front.png",
+        "https://lokaboat.s3.ap-south-1.amazonaws.com/male_card-3.png",
     };
     const output = await replicate.run(
       "omniedgeio/face-swap:c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe",
@@ -270,7 +272,7 @@ const card = asyncHandler(async (req, res) => {
     const input = {
       swap_image: req.query.photo,
       target_image:
-        "https://times-project.s3.ap-south-1.amazonaws.com/female_card-1.jpg",
+        "https://lokaboat.s3.ap-south-1.amazonaws.com/female_card-1+(1).jpg",
     };
     const output = await replicate.run(
       "omniedgeio/face-swap:c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe",
@@ -290,6 +292,43 @@ const card = asyncHandler(async (req, res) => {
   }
 });
 
+const searchUser = asyncHandler(async (req, res) => {
+  let a;
+  if (typeof req.query.Query === "string") {
+    a = !isNaN(req.query.Query);
+  }
+  if (a == true) {
+    const users = await User.find({ phone: req.query.Query }).select(
+      "-password"
+    );
+
+    if (users) {
+      res.json(users);
+    } else {
+      res.status(404);
+      throw new Error("User not found");
+    }
+  } else {
+    const users = await User.aggregate([
+      {
+        $search: {
+          index: "default",
+          text: {
+            query: req.query.Query,
+            path: ["name", "phone"],
+          },
+        },
+      },
+    ]);
+    if (users) {
+      res.json(users);
+    } else {
+      res.status(404);
+      throw new Error("users not found");
+    }
+  }
+});
+
 module.exports = {
   authUser,
   registerUser,
@@ -301,5 +340,6 @@ module.exports = {
   updateUser,
   resetPassword,
   card,
-  getUserByPhone
+  getUserByPhone,
+  searchUser,
 };
